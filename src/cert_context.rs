@@ -86,6 +86,38 @@ impl CertContext {
         self.get_encoded_bytes()
     }
 
+    /// Certificate issuer info
+    pub fn issuer_info_der(&self) -> io::Result<Vec<u8>> {
+        unsafe {
+            let mut dw_type = wincrypt::CERT_X500_NAME_STR;
+            let len = wincrypt::CertGetNameStringA(self.0,
+                                                   wincrypt::CERT_NAME_RDN_TYPE,
+                                                   wincrypt::CERT_NAME_ISSUER_FLAG,
+                                                   &mut dw_type as *mut u32 as *mut _,
+                                                   ptr::null_mut(),
+                                                   0);
+            if len > 0 {
+                let mut dw_type = wincrypt::CERT_X500_NAME_STR;
+                let mut buf = vec![0u8; len as usize];
+                let len = wincrypt::CertGetNameStringA(self.0,
+                                                   wincrypt::CERT_NAME_RDN_TYPE,
+                                                   wincrypt::CERT_NAME_ISSUER_FLAG,
+                                                   &mut dw_type as *mut u32 as *mut _,
+                                                   buf.as_mut_ptr() as *mut i8,
+                                                   len);
+
+                if len as usize != buf.len() {
+                    unimplemented!();
+                }
+
+                buf.pop();
+
+                return Ok(buf);
+            }
+        }
+        Err(io::Error::last_os_error())
+    }
+
     /// Certificate subject public key info
     pub fn subject_public_key_info_der(&self) -> io::Result<Vec<u8>> {
         unsafe {
